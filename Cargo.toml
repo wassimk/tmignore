@@ -1,6 +1,6 @@
 [package]
 name = "tmignore"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "Exclude developer dependency directories and arbitrary paths from macOS backups"
 license = "MIT"

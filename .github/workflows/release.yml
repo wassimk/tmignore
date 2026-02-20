@@ -59,7 +59,7 @@ jobs:
       - name: Sign binary
         run: |
           codesign --force --options runtime \
-            --sign "Developer ID Application: Wassim Metallaoui (${{ secrets.APPLE_TEAM }})" \
+            --sign "Developer ID Application: Wassim Metallaoui (${{ secrets.APPLE_TEAM_ID }})" \
             target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}
 
       - name: Notarize binary
@@ -68,7 +68,7 @@ jobs:
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           ZIP_PATH=$RUNNER_TEMP/${{ matrix.platform.bin }}-notarize.zip
           ditto -c -k target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }} "$ZIP_PATH"

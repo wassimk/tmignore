@@ -2,11 +2,7 @@
 
 Exclude developer dependency directories and arbitrary paths from macOS backups.
 
-tmignore scans your filesystem for dependency directories (node_modules, target, vendor, .venv, etc.) and marks them as excluded from Time Machine using sticky exclusions (`tmutil addexclusion`). It also excludes common developer toolchain paths (Homebrew, Cargo, npm caches, Xcode DerivedData, etc.) by default.
-
-## Why not asimov?
-
-[asimov](https://github.com/stevegrunwell/asimov) runs as a LaunchDaemon (root context), which means `$HOME` resolves to `/var/root` instead of your home directory. The service runs but silently excludes nothing. tmignore fixes this by running as a LaunchAgent (user context) where `$HOME` resolves correctly. No root access required.
+tmignore scans your filesystem for dependency directories (*node_modules*, *target*, *vendor*, *.venv*, etc.) and marks them as excluded from Time Machine using sticky exclusions (`tmutil addexclusion`). It also excludes common developer toolchain paths (Homebrew, Cargo, npm caches, Xcode DerivedData, etc.) by default.
 
 ## Install
 
@@ -39,7 +35,7 @@ tmignore install              # Set up background service (every 24h)
 
 ## Config
 
-`~/.config/tmignore/config.toml`
+*~/.config/tmignore/config.toml*
 
 tmignore ships with sensible defaults built into the binary. The config file is optional and only needed to customize behavior. Run `tmignore init` to generate one.
 
@@ -72,12 +68,12 @@ This file is designed to be synced across machines via dotfiles, iCloud, or simi
 
 These paths are excluded from backups and skipped during scanning by default. No config needed.
 
-- **Version managers:** ~/.rbenv, ~/.pyenv, ~/.nvm, ~/.asdf, ~/.local/share/mise
-- **Language toolchains:** ~/.rustup, ~/.cargo, ~/.gradle, ~/.m2, ~/.npm, ~/.pnpm-store, ~/.cocoapods, ~/.nuget, ~/go/pkg, ~/.gem, ~/.hex, ~/.cpan, ~/.bun, ~/.deno, ~/.yarn, ~/.npm-global, ~/.cache/node
-- **Homebrew:** /opt/homebrew
-- **Nix/Devbox:** /nix, ~/.cache/nix, ~/.local/share/devbox
-- **Docker/Colima:** ~/Library/Containers/com.docker.docker, ~/.colima, ~/.lima
-- **Xcode:** ~/Library/Developer/Xcode/DerivedData, iOS/watchOS/tvOS DeviceSupport, ~/Library/Developer/CoreSimulator/Devices
+- **Version managers:** *~/.rbenv*, *~/.pyenv*, *~/.nvm*, *~/.asdf*, *~/.local/share/mise*
+- **Language toolchains:** *~/.rustup*, *~/.cargo*, *~/.gradle*, *~/.m2*, *~/.npm*, *~/.pnpm-store*, *~/.cocoapods*, *~/.nuget*, *~/go/pkg*, *~/.gem*, *~/.hex*, *~/.cpan*, *~/.bun*, *~/.deno*, *~/.yarn*, *~/.npm-global*, *~/.cache/node*
+- **Homebrew:** */opt/homebrew*
+- **Nix/Devbox:** */nix*, *~/.cache/nix*, *~/.local/share/devbox*
+- **Docker/Colima:** *~/Library/Containers/com.docker.docker*, *~/.colima*, *~/.lima*
+- **Xcode:** *~/Library/Developer/Xcode/DerivedData*, iOS/watchOS/tvOS DeviceSupport, *~/Library/Developer/CoreSimulator/Devices*
 
 Use `disable_exclude_paths` to stop excluding any of these. Use `extra_exclude_paths` to add your own.
 
@@ -132,7 +128,7 @@ Disable any built-in pattern by adding its name to `disable_patterns` in the con
 
 ## LaunchAgent service
 
-`tmignore install` creates a LaunchAgent at `~/Library/LaunchAgents/com.wassimk.tmignore.plist` that runs `tmignore run` every 24 hours. Logs are written to `~/Library/Logs/tmignore/`.
+`tmignore install` creates a LaunchAgent at *~/Library/LaunchAgents/com.wassimk.tmignore.plist* that runs `tmignore run` every 24 hours. Logs are written to *~/Library/Logs/tmignore/*.
 
 The service runs in user context (not root), so `$HOME` resolves correctly and no elevated permissions are needed.
 
@@ -152,7 +148,3 @@ tmignore uses `tmutil addexclusion` (without the `-p` flag) which writes a stick
 ## Attribution
 
 tmignore is inspired by [asimov](https://github.com/stevegrunwell/asimov) by Steve Grunwell.
-
-## License
-
-MIT

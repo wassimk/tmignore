@@ -1,0 +1,106 @@
+name: update-homebrew
+
+on:
+  workflow_run:
+    workflows: [release]
+    types: [completed]
+
+jobs:
+  update-formula:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get release version
+        id: version
+        run: |
+          TAG=$(gh release view --repo wassimk/tmignore --json tagName -q '.tagName')
+          VERSION="${TAG#v}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download SHA-256 checksums
+        run: |
+          gh release download "${{ steps.version.outputs.tag }}" \
+            --repo wassimk/tmignore \
+            --pattern '*-sha.txt' \
+            --dir checksums
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Parse checksums
+        id: shas
+        run: |
+          for file in checksums/*-sha.txt; do
+            SHA=$(awk '{print $1}' "$file")
+            NAME=$(basename "$file" -sha.txt)
+
+            case "$NAME" in
+              tmignore-Darwin-aarch64.tar.gz) echo "darwin_arm64=$SHA" >> "$GITHUB_OUTPUT" ;;
+              tmignore-Darwin-x86_64.tar.gz)  echo "darwin_x86_64=$SHA" >> "$GITHUB_OUTPUT" ;;
+            esac
+          done
+
+      - name: Checkout homebrew-tap
+        uses: actions/checkout@v4
+        with:
+          repository: wassimk/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+      - name: Update formula
+        run: |
+          cat > Formula/tmignore.rb << 'RUBY'
+          class Tmignore < Formula
+            desc "Exclude developer dependency directories and arbitrary paths from macOS backups"
+            homepage "https://github.com/wassimk/tmignore"
+            version "${{ steps.version.outputs.version }}"
+            license "MIT"
+
+            depends_on :macos
+
+            if Hardware::CPU.arm?
+              url "https://github.com/wassimk/tmignore/releases/download/v#{version}/tmignore-Darwin-aarch64.tar.gz"
+              sha256 "${{ steps.shas.outputs.darwin_arm64 }}"
+            elsif Hardware::CPU.intel?
+              url "https://github.com/wassimk/tmignore/releases/download/v#{version}/tmignore-Darwin-x86_64.tar.gz"
+              sha256 "${{ steps.shas.outputs.darwin_x86_64 }}"
+            end
+
+            def install
+              bin.install "tmignore"
+            end
+
+            def caveats
+              <<~EOS
+                To start tmignore as a background service (runs every 24 hours):
+                  tmignore install
+
+                To remove the background service:
+                  tmignore uninstall
+
+                To generate a config file:
+                  tmignore init
+
+                Config: ~/.config/tmignore/config.toml
+              EOS
+            end
+
+            test do
+              assert_match version.to_s, shell_output("#{bin}/tmignore --version")
+            end
+          end
+          RUBY
+
+      - name: Remove leading whitespace from formula
+        run: sed -i 's/^          //' Formula/tmignore.rb
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/tmignore.rb
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+          git commit -m "feat: update tmignore to ${{ steps.version.outputs.version }}"
+          git push

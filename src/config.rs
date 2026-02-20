@@ -70,12 +70,12 @@ pub fn builtin_exclude_paths() -> Vec<&'static str> {
         "~/.deno",
         "~/.yarn",
         "~/.npm-global",
-        "~/.cache/node",
+        "~/.bundle/cache",
+        "~/.cache",
         // Homebrew
         "/opt/homebrew",
         // Nix / Devbox
         "/nix",
-        "~/.cache/nix",
         "~/.local/share/devbox",
         // Docker / Colima
         "~/Library/Containers/com.docker.docker",

@@ -4,13 +4,13 @@ Exclude developer dependency directories and arbitrary paths from macOS backups.
 
 tmignore scans your filesystem for dependency directories (*node_modules*, *target*, *vendor*, *.venv*, etc.) and marks them as excluded from Time Machine using sticky exclusions (`tmutil addexclusion`). It also excludes common developer toolchain paths (Homebrew, Cargo, npm caches, Xcode DerivedData, etc.) by default.
 
-## Install
+## 🛠️ Install
 
 ```
 brew install wassimk/tap/tmignore
 ```
 
-## Usage
+## 💻 Usage
 
 ```
 tmignore run [--dry-run] [--verbose]   # Scan and exclude
@@ -24,7 +24,7 @@ tmignore uninstall                     # Remove LaunchAgent
 tmignore reset [--all]                 # Remove backup exclusions set by tmignore
 ```
 
-### Quick start
+### ⚡ Quick start
 
 ```
 tmignore init                 # Create ~/.config/tmignore/config.toml
@@ -33,7 +33,7 @@ tmignore run                  # Exclude everything
 tmignore install              # Set up background service (every 24h)
 ```
 
-## Config
+## ⚙️ Config
 
 *~/.config/tmignore/config.toml*
 
@@ -64,7 +64,7 @@ extra_exclude_paths = [
 
 This file is designed to be synced across machines via dotfiles, iCloud, or similar. On a new machine: `brew install wassimk/tap/tmignore && tmignore run` applies everything.
 
-### Built-in exclude paths
+### 📂 Built-in exclude paths
 
 These paths are excluded from backups and skipped during scanning by default. No config needed.
 
@@ -77,7 +77,7 @@ These paths are excluded from backups and skipped during scanning by default. No
 
 Use `disable_exclude_paths` to stop excluding any of these. Use `extra_exclude_paths` to add your own.
 
-## Built-in patterns
+## 🔍 Built-in patterns
 
 tmignore recognizes 40 dependency directory patterns. Each pattern matches a directory name and verifies a sentinel file exists in the parent directory.
 
@@ -126,13 +126,13 @@ tmignore recognizes 40 dependency directory patterns. Each pattern matches a dir
 
 Disable any built-in pattern by adding its name to `disable_patterns` in the config. Add new patterns with `[[custom_patterns]]`.
 
-## LaunchAgent service
+## 🕐 LaunchAgent service
 
 `tmignore install` creates a LaunchAgent at *~/Library/LaunchAgents/com.wassimk.tmignore.plist* that runs `tmignore run` every 24 hours. Logs are written to *~/Library/Logs/tmignore/*.
 
 The service runs in user context (not root), so `$HOME` resolves correctly and no elevated permissions are needed.
 
-## Backup tool compatibility
+## 💾 Backup tool compatibility
 
 The macOS exclusion metadata set by tmignore is honored by multiple backup tools:
 
@@ -141,10 +141,10 @@ The macOS exclusion metadata set by tmignore is honored by multiple backup tools
 - **Backblaze**. Check "Also exclude Apple-specified exclusions" in Settings > Exclusions.
 - Other backup tools that read macOS extended attributes will likely honor these exclusions too.
 
-## How it works
+## 🧰 How it works
 
 tmignore uses `tmutil addexclusion` (without the `-p` flag) which writes a sticky extended attribute (`com.apple.metadata:com_apple_backup_excludeItem`) directly onto the directory. This exclusion follows the item if renamed or moved, and does not require root privileges.
 
-## Attribution
+## 🙏 Attribution
 
 tmignore is inspired by [asimov](https://github.com/stevegrunwell/asimov) by Steve Grunwell.

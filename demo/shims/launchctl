@@ -1,0 +1,12 @@
+#!/bin/bash
+# Stand-in for launchctl so the demo never loads or unloads the real LaunchAgent.
+# Loaded state is a marker file inside the demo sandbox.
+
+loaded="$TMIGNORE_DEMO_DIR/agent-loaded"
+
+case "$1" in
+  bootstrap) : >"$loaded" ;;
+  bootout) rm -f "$loaded" ;;
+  list) [[ -f "$loaded" ]] ;;
+  *) echo "launchctl demo shim: unsupported command $1" >&2; exit 1 ;;
+esac

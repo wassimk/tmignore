@@ -1,5 +1,6 @@
+use crate::config::contract_tilde;
 use anyhow::{Context, Result};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 const LABEL: &str = "com.wassimk.tmignore";
@@ -57,6 +58,17 @@ fn generate_plist(binary_path: &str) -> String {
     )
 }
 
+fn write_plist(plist: &Path, content: &str) -> Result<()> {
+    // ~/Library/LaunchAgents doesn't exist until something installs a per-user agent
+    if let Some(dir) = plist.parent() {
+        std::fs::create_dir_all(dir)
+            .with_context(|| format!("Failed to create {}", dir.display()))?;
+    }
+
+    std::fs::write(plist, content)
+        .with_context(|| format!("Failed to write plist to {}", plist.display()))
+}
+
 pub fn install(force: bool) -> Result<()> {
     let plist = plist_path();
 
@@ -83,9 +95,7 @@ pub fn install(force: bool) -> Result<()> {
     std::fs::create_dir_all(log_dir()).context("Failed to create log directory")?;
 
     // Write plist
-    let content = generate_plist(&binary_path);
-    std::fs::write(&plist, content)
-        .with_context(|| format!("Failed to write plist to {}", plist.display()))?;
+    write_plist(&plist, &generate_plist(&binary_path))?;
 
     // Load agent
     let output = Command::new("launchctl")
@@ -104,8 +114,8 @@ pub fn install(force: bool) -> Result<()> {
 
     println!("LaunchAgent installed and loaded.");
     println!("  Label: {LABEL}");
-    println!("  Plist: {}", plist.display());
-    println!("  Logs:  {}", log_dir().display());
+    println!("  Plist: {}", contract_tilde(&plist.to_string_lossy()));
+    println!("  Logs:  {}", contract_tilde(&log_dir().to_string_lossy()));
     println!();
     println!("The service will run `tmignore run` every 24 hours.");
     Ok(())
@@ -151,4 +161,20 @@ pub fn get_plist_path() -> PathBuf {
 
 pub fn get_log_dir() -> PathBuf {
     log_dir()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_write_plist_creates_missing_launch_agents_dir() {
+        let home = std::env::temp_dir().join(format!("tmignore-test-{}", std::process::id()));
+        let plist = home.join("Library/LaunchAgents/com.wassimk.tmignore.plist");
+
+        write_plist(&plist, "<plist/>").unwrap();
+
+        assert_eq!(std::fs::read_to_string(&plist).unwrap(), "<plist/>");
+        std::fs::remove_dir_all(&home).unwrap();
+    }
 }

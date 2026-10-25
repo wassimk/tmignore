@@ -1,3 +1,4 @@
+use crate::config::contract_tilde;
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -113,8 +114,8 @@ pub fn install(force: bool) -> Result<()> {
 
     println!("LaunchAgent installed and loaded.");
     println!("  Label: {LABEL}");
-    println!("  Plist: {}", plist.display());
-    println!("  Logs:  {}", log_dir().display());
+    println!("  Plist: {}", contract_tilde(&plist.to_string_lossy()));
+    println!("  Logs:  {}", contract_tilde(&log_dir().to_string_lossy()));
     println!();
     println!("The service will run `tmignore run` every 24 hours.");
     Ok(())

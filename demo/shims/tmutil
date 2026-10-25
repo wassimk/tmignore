@@ -1,0 +1,20 @@
+#!/bin/bash
+# Stand-in for tmutil so the demo never changes real Time Machine settings.
+# Exclusions are tracked in a text file inside the demo sandbox. Bash builtins only, so each
+# call starts a single process and the demo output isn't slowed down.
+
+list="$TMIGNORE_DEMO_DIR/exclusions"
+
+case "$1" in
+  isexcluded)
+    while IFS= read -r path; do
+      if [[ "$path" == "$2" ]]; then
+        echo "[Excluded]    $2"
+        exit 0
+      fi
+    done <"$list"
+    echo "[Included]    $2"
+    ;;
+  addexclusion) echo "$2" >>"$list" ;;
+  *) echo "tmutil demo shim: unsupported command $1" >&2; exit 1 ;;
+esac

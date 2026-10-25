@@ -1,0 +1,8 @@
+#!/bin/bash
+# Stand-in for `du -sh` that reports the size written in each fake dependency directory's
+# .demo-size file, so the demo shows realistic sizes without using disk space.
+
+dir="${!#}"
+size=4.0K
+[[ -f "$dir/.demo-size" ]] && read -r size <"$dir/.demo-size"
+printf '%s\t%s\n' "$size" "$dir"

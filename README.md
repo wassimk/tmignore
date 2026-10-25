@@ -4,6 +4,10 @@ Exclude developer dependency directories and arbitrary paths from macOS backups.
 
 tmignore scans your filesystem for dependency directories (*node_modules*, *target*, *vendor*, *.venv*, etc.) and marks them as excluded from Time Machine using sticky exclusions (`tmutil addexclusion`). It also excludes common developer toolchain paths (Homebrew, Cargo, npm caches, Xcode DerivedData, etc.) by default.
 
+![tmignore demo](demo/tmignore.gif)
+
+One run excludes what's already there. After `tmignore install`, it runs every 24 hours in the background.
+
 ## 🛠️ Install
 
 ```

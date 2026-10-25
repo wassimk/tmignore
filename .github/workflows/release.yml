@@ -63,7 +63,6 @@ jobs:
             target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}
 
       - name: Notarize binary
-        continue-on-error: true
         timeout-minutes: 15
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}

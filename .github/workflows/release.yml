@@ -42,13 +42,18 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable --profile minimal --no-self-update
+          rustup default stable
+          rustup target add "$TARGET"
+
+      # Strip at build time: the binary is code signed in the next step, and
+      # stripping a signed binary would break its signature.
       - name: Build binary
-        uses: houseabsolute/actions-rust-cross@21b0f18dc621b25bfae556ff2791fca4173121e8 # v1.0.8
-        with:
-          target: ${{ matrix.platform.target }}
-          args: "--locked --release"
-          strip: true
-          use-rust-cache: false
+        env:
+          CARGO_PROFILE_RELEASE_STRIP: "true"
+        run: cargo build --locked --release --target "$TARGET"
 
       - name: Import code signing certificate
         env:

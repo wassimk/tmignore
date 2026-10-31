@@ -1,15 +1,20 @@
-name: release
+name: Release
 
 on:
   release:
     types: [created]
 
-permissions:
-  contents: write
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   release:
     name: Release - ${{ matrix.platform.release_for }}
+    permissions:
+      contents: write # uploads assets to the GitHub release
     strategy:
       matrix:
         platform:
@@ -26,41 +31,50 @@ jobs:
             name: tmignore-Darwin-aarch64.tar.gz
 
     runs-on: ${{ matrix.platform.os }}
+    env:
+      TARGET: ${{ matrix.platform.target }}
+      BIN: ${{ matrix.platform.bin }}
+      ARCHIVE: ${{ matrix.platform.name }}
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Build binary
-        uses: houseabsolute/actions-rust-cross@v0
+        uses: houseabsolute/actions-rust-cross@21b0f18dc621b25bfae556ff2791fca4173121e8 # v1.0.8
         with:
           target: ${{ matrix.platform.target }}
           args: "--locked --release"
           strip: true
+          use-rust-cache: false
 
       - name: Import code signing certificate
         env:
           APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
         run: |
-          CERTIFICATE_PATH=$RUNNER_TEMP/certificate.p12
-          KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain-db
+          CERTIFICATE_PATH="$RUNNER_TEMP/certificate.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/signing.keychain-db"
           KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
 
-          echo -n "$APPLE_CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+          echo -n "$APPLE_CERTIFICATE_BASE64" | base64 --decode -o "$CERTIFICATE_PATH"
 
-          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          security import $CERTIFICATE_PATH -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
-          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          security list-keychain -d user -s $KEYCHAIN_PATH
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
 
       - name: Sign binary
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           codesign --force --options runtime \
-            --sign "Developer ID Application: Wassim Metallaoui (${{ secrets.APPLE_TEAM_ID }})" \
-            target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}
+            --sign "Developer ID Application: Wassim Metallaoui ($APPLE_TEAM_ID)" \
+            "target/$TARGET/release/$BIN"
 
       - name: Notarize binary
         timeout-minutes: 15
@@ -69,8 +83,8 @@ jobs:
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          ZIP_PATH=$RUNNER_TEMP/${{ matrix.platform.bin }}-notarize.zip
-          ditto -c -k target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }} "$ZIP_PATH"
+          ZIP_PATH="$RUNNER_TEMP/$BIN-notarize.zip"
+          ditto -c -k "target/$TARGET/release/$BIN" "$ZIP_PATH"
           xcrun notarytool submit "$ZIP_PATH" \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_ID_PASSWORD" \
@@ -80,26 +94,25 @@ jobs:
       - name: Archive binary
         shell: bash
         run: |
-          cd target/${{ matrix.platform.target }}/release
-          tar czvf ../../../${{ matrix.platform.name }} ${{ matrix.platform.bin }}
-          cd -
+          tar czvf "$ARCHIVE" -C "target/$TARGET/release" "$BIN"
 
       - name: Generate SHA-256
         shell: bash
         run: |
-          shasum -a 256 ${{ matrix.platform.name }} > ${{ matrix.platform.name }}-sha.txt
+          shasum -a 256 "$ARCHIVE" > "$ARCHIVE-sha.txt"
 
       - name: Publish release artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: tmignore-${{ matrix.platform.target }}
           path: "tmignore-*"
 
       - name: Publish GitHub release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: "tmignore*"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$TAG" "$ARCHIVE" "$ARCHIVE-sha.txt" --clobber
 
       - name: Clean up keychain
         if: always()
-        run: security delete-keychain $RUNNER_TEMP/signing.keychain-db
+        run: security delete-keychain "$RUNNER_TEMP/signing.keychain-db"

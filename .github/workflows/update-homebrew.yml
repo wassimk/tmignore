@@ -1,12 +1,23 @@
-name: update-homebrew
+name: Update Homebrew
 
+# workflow_run is safe here: it runs only after this repo's own Release
+# workflow and never checks out or runs code from the triggering run.
 on:
-  workflow_run:
-    workflows: [release]
+  workflow_run: # zizmor: ignore[dangerous-triggers]
+    workflows: [Release]
     types: [completed]
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
 
 jobs:
   update-formula:
+    name: Update Formula
+    permissions:
+      contents: read # gh release view and download on this repo
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
@@ -43,9 +54,10 @@ jobs:
             esac
           done
 
+      # The "Commit and push" step pushes with these credentials (HOMEBREW_TAP_TOKEN).
       - name: Checkout homebrew-tap
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
+        with: # zizmor: ignore[artipacked]
           repository: wassimk/homebrew-tap
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
 
